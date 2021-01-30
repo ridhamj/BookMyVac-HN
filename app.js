@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const _ = require("lodash");
+const StreamrClient = require('streamr-client');
 
 //express
 const app = express();
@@ -43,7 +44,7 @@ app.post("/", function(req, res) {
 });
 
 app.get("/form", function(req, res) {
-  res.sendFile(__dirname + "/public/form.html");
+  res.sendFile(__dirname + "/public/form-new.html");
 });
 
 
@@ -223,17 +224,106 @@ app.get("/userDB", function(req, res) {
 });
 
 app.get("/addUser", function(req, res) {
-  res.sendFile(__dirname + "/public/form.html");
+  res.sendFile(__dirname + "/public/form-new.html");
 });
 
+
+
+var SHARED_SECRET = 'TTC3Iq2bTqKvb9OflSsWewKgmyxl5qSiirRHaZ09ZVlw';
+  var DU_CONTRACT = '0x4f044e00279ddb6b5ed79284bfe0e137a3955c40';
+  var STREAM_ID = '0xf6d2152e9e8d88dea50d095bdedb6f55e465db44/UserData';
+
+  var userWallet = StreamrClient.generateEthereumAccount();
+  console.log(userWallet);
+
+  var streamr= new StreamrClient({
+    auth: {
+        privateKey: userWallet.privateKey,
+    },
+    url: 'wss://hack.streamr.network/api/v1/ws',
+    restUrl: 'https://hack.streamr.network/api/v1'
+  })
+
+
+
+  
+function pushDataToStream(userInfo){
+  var dataPoint = {
+    'userData' : userInfo,
+  }
+  streamr.publish(STREAM_ID,dataPoint)
+  .then(() => {
+   console.log('Sent successfully: ' + JSON.stringify(dataPoint))
+ })
+ .catch((err) => {
+   console.log(err)
+ })
+
+} 
 app.post("/addUser", function(req, res) {
 
   const fname = _.capitalize(req.body.fname);
   const lname = _.capitalize(req.body.lname);
+
   const city = _.capitalize(req.body.city);
+  const state = _.capitalize(req.body.state);
+  const zip = req.body.zip;
+
   const phone = req.body.phone;
   const email = req.body.email;
 
+  var d = new Date();
+  const currentYear = d.getFullYear();;
+  const age = currentYear - req.body.year;
+
+  var bloodGroup = req.body.blood;
+
+  var gender = req.body.gender;
+
+  if(gender === '1')
+  gender = 'Male';
+
+  else if(gender === '2')
+  gender = 'Female';
+
+  else
+  gender = 'Other';
+
+  const rcvdDose = req.body.rcvdDose;
+  const covidPositive = req.body.covidPositive;
+  const pregnantOrbreastfeeding = req.body.pregnantOrbreastfeeding;
+  const allergic = req.body.allergic;
+
+  const userInfo = {
+    age: age,
+    gender: gender,
+    city: city,
+    state: state,
+    zip: zip,
+    medicalHistory: {
+      bloodGroup: bloodGroup,
+      recievedDose: rcvdDose,
+      covidPositive: covidPositive,
+      pregnantOrbreastfeeding: pregnantOrbreastfeeding,
+      allergic: allergic
+    }
+    
+  };
+
+  console.log(userInfo);
+  
+
+
+
+
+ console.log(streamr);
+ streamr.joinDataUnion(DU_CONTRACT,SHARED_SECRET)
+   .then((memberDetails)=> {
+     console.log(memberDetails)
+     
+   })
+
+  pushDataToStream(userInfo);
 
   const newUser = new User({
     fname: fname,
@@ -281,3 +371,4 @@ app.get("/hospitals", function(req, res) {
 app.listen(3000, function() {
   console.log("server started on port 3000");
 });
+
