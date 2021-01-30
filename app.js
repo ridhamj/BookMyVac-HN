@@ -224,7 +224,7 @@ app.get("/userDB", function(req, res) {
 });
 
 app.get("/addUser", function(req, res) {
-  res.sendFile(__dirname + "/public/form-new.html");
+  res.sendFile(__dirname + "/public/form.html");
 });
 
 
